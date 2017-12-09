@@ -1,0 +1,15 @@
+{
+  "name" : "Music 02 !",
+  "notesList" : [
+                { "note": 7,
+                  "duration": 5},
+
+                { "note": 0,
+                 "duration": 1},
+
+                {"note": 7,
+                 "duration": 4}
+
+              ],
+  "description": "This is the second music invented by me without much skill in music :-)"
+}
