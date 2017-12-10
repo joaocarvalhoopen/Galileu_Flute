@@ -108,8 +108,6 @@ func main() {
 		music_01 = getReadMusicScoreFromJSON(jsonFilePathAndName)
 	}
 
-//	// Reads the music from JSON file and writes the name to the screen.
-//	music_01 = getReadMusicScoreFromJSON(jsonFilePathAndName)
 	fmt.Printf("\n\n\nMusic name: %s\n\n Description: %s\n", music_01.Name, music_01.Description )
 	music_01.MSResetToRepeat()
 	time.Sleep(2 * time.Second)  // 2 seconds.
