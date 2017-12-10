@@ -6,7 +6,9 @@ Description: This is a game to be played with a real Recorder (Flauta de Bisel
              what musical note was played, it shows a musical score
              that is scrolling from the left to the right and the
              objective is to hit each note at the rigth time.
-             This game is in text mode and is tested on Windows 10.
+             This game is in text mode and is tested on Windows 10,
+             but it can run in Linux or Mac.
+             Implemented in Go ( GoLang ) programming Language.
 
 Author:  Joao Nuno Carvalho
 email:   joaonunocarv@gmail.com
