@@ -6,9 +6,7 @@
 //              what musical note was played, it shows a musical score
 //              that is scrolling from the left to the right and the
 //              objective is to hit each note at the rigth time.
-//              This game is in text mode and is tested on Windows 10,
-//              but it can run in Linux or Mac.
-//              Implemented in Go ( GoLang ) programming Language.
+//              This game is in text mode and is tested on Windows 10.
 //
 //
 // Author:  Joao Nuno Carvalho
@@ -17,9 +15,11 @@
 // License: MIT OpenSource license
 //
 // To execute do on a command line:
-//    galileu_flute.exe
-//    or
-//    galileu_flute.exe ./music_02.json
+//    	galileu_flute.exe
+//    or reading from a specific json file
+//    	galileu_flute.exe ./music_02.json
+//    or reading from a specific simplified ABC file format (extension .ABC or .abc)
+//      galileu_flute.exe ./music_01.ABC
 //
 // Example of the output:
 //
@@ -75,6 +75,7 @@ import (
 	"io/ioutil"
 	"os"
 	"encoding/json"
+	"strings"
 )
 
 var musicNote MusicNote = MusicNote{}
@@ -92,10 +93,23 @@ func main() {
 	jsonFilePathAndName := ""
 	if len(os.Args) > 1{
 		jsonFilePathAndName = os.Args[1]
+
+		if strings.HasSuffix(jsonFilePathAndName, ".abc") ||
+		   strings.HasSuffix(jsonFilePathAndName, ".ABC"){
+		   	// Reads the simplified ABC file.
+			music_01 = getReadMusicScoreFromSimplifiedABC(jsonFilePathAndName)
+
+		}else{
+			// Reads the music from JSON file and writes the name to the screen.
+			music_01 = getReadMusicScoreFromJSON(jsonFilePathAndName)
+		}
+	}else{
+		// Reads the music from JSON file and writes the name to the screen.
+		music_01 = getReadMusicScoreFromJSON(jsonFilePathAndName)
 	}
 
-	// Reads the music from JSON file and writes the name to the screen.
-	music_01 = getReadMusicScoreFromJSON(jsonFilePathAndName)
+//	// Reads the music from JSON file and writes the name to the screen.
+//	music_01 = getReadMusicScoreFromJSON(jsonFilePathAndName)
 	fmt.Printf("\n\n\nMusic name: %s\n\n Description: %s\n", music_01.Name, music_01.Description )
 	music_01.MSResetToRepeat()
 	time.Sleep(2 * time.Second)  // 2 seconds.
@@ -725,6 +739,10 @@ func (MS * MusicScore) MSExpandIntoArray() {
 	for _, e := range MS.NotesList{
 		switch e.Note {
 		case 	EMPTY:
+			// Processes the silent notes!
+			for i:=0; i<e.Duration-1; i++{
+				currentPos++
+			}
 
 		/*
         case  DO:
@@ -880,6 +898,10 @@ func printScreenBuffer(){
 	fmt.Printf("\n\n\n\n                Galileu's Flute\n\n                    Score: %d\n%s", currentScore, myStr)
 }
 
+
+//##################
+// JSON file parsing
+
 func getReadMusicScoreFromJSON(jsonFilePathAndName string) MusicScore {
 	// If the path comes empty fill it with the default file path name.
 	if jsonFilePathAndName == "" {
@@ -912,6 +934,122 @@ func MusicScoreToJsonString(p interface{}) string {
 	return string(bytes)
 }
 
+//##################
+// Simplified ABC file parsing
+
+
+func getReadMusicScoreFromSimplifiedABC(simplifiedABCFilePathAndName string) MusicScore {
+
+	fileContentABC_bytes, err := ioutil.ReadFile(simplifiedABCFilePathAndName)
+	if err != nil {
+		fmt.Println("Error Reading the simplified ABC Music Score file!")
+		fmt.Println(err.Error())
+		os.Exit(1)		//Do something
+	}
+
+	var musicScore MusicScore = MusicScore{}
+	ABCProcessMsuicParser(& musicScore, string(fileContentABC_bytes))
+	return musicScore
+}
+
+
+func ABCProcessMsuicParser(ms *MusicScore, musicFileStr string) {
+	//mS_ABC := musicSimplifiedABC{}
+	lines := strings.Split(musicFileStr, "\n")
+
+	for i, line := range lines {
+		// Process first line.
+		if i == 0 {
+			line_tmp := strings.Split(line, "T:")
+			if len(line_tmp) > 1{
+				ms.Name = line_tmp[1]
+			}
+			continue
+		}
+
+		ABCProcessMsuicLine(ms, line)
+	}
+	ABCPrintNotes(ms)
+}
+
+
+func ABCProcessMsuicLine(ms *MusicScore, line string) {
+	runesList := []rune(line)
+	for i, runeVal := range runesList{
+		switch runeVal {
+		case ' ', '|', ']', '1','2', '3','4':
+			continue
+
+		default:
+			runeBuff := []rune{}
+			if i+1 < len(runesList){
+				runeBuff = runesList[i: i+2]  // 2 runes
+			}else {
+				runeBuff = runesList[i: i+1]  // 1 rune
+			}
+			ABCProcessNote(ms, runeBuff)
+		}
+	}
+}
+
+func ABCProcessNote(ms *MusicScore, runeBuff []rune){
+	duration := 2
+	if len(runeBuff) > 1 {
+		// Analises the second rune/character.
+		switch runeBuff[1] {
+		case '1': duration = 1
+			//case '2':
+		case '3': duration = 3
+		case '4': duration = 4
+		}
+	}
+	var note int = -1
+	// Analises the first rune/character.
+	switch runeBuff[0] {
+	case 'S': note = 0
+	case 'C': note = 1
+	case 'D': note = 2
+	case 'E': note = 3
+	case 'F': note = 4
+	case 'G': note = 5
+	case 'A': note = 6
+	case 'B': note = 7
+	case 'c': note = 8
+	}
+	if note != -1 {
+		ABCAppendNote(ms, note, duration)
+	}
+}
+
+
+func ABCAppendNote(ms *MusicScore, note int, duration int) {
+	noteABC := PlayNote{note, duration}
+	ms.NotesList = append(ms.NotesList, noteABC)
+	index := len(ms.NotesList)
+	index = index - 1
+	ms.NotesList[index].Note     = note
+	ms.NotesList[index].Duration = duration
+}
+
+func ABCPrintNotes(ms *MusicScore){
+	fmt.Printf("Title: %s\n\n", ms.Name)
+	musicalNoteStr := []string{"S",
+		                       "C",
+	                           "D",
+	                           "E",
+	                           "F",
+	                           "G",
+	                           "A",
+	                           "B",
+	                           "c" }
+	for _, note := range ms.NotesList {
+		fmt.Printf("%s%d ", musicalNoteStr[note.Note], note.Duration)
+	}
+	fmt.Printf("\n\nNumber of notes: %d", len(ms.NotesList))
+}
+
+//#################################
+//#################################
 
 var manual string = `
 
@@ -932,9 +1070,11 @@ License: MIT OpenSource license
 
 
 To execute do on a command line:
-   galileu_flute.exe
-    or
-   galileu_flute.exe ./music_02.json
+      galileu_flute.exe
+   or reading from a specific json file
+      galileu_flute.exe ./music_02.json
+   or reading from a specific simplified ABC file format (extension .ABC or .abc)
+      galileu_flute.exe ./music_01.ABC
 
 
 Example of the output:
